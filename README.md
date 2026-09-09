@@ -42,12 +42,6 @@ dsh plugin --profile web add github:SmailPang/dsh-effort-slider
 dsh plugin --profile web add git+https://github.com/SmailPang/dsh-effort-slider.git
 ```
 
-仅在克隆本仓库并进行本地开发时，才使用 `link:`：
-
-```powershell
-dsh plugin --profile web add link:D:\你的路径\dsh-effort-slider
-```
-
 > 可选校验：`dsh --profile web --dump-config`（只组合配置树，不启动服务），应能看到
 > `effort-slider` 行。
 
