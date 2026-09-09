@@ -1,0 +1,9 @@
+# dsh-effort-slider —— DSH bundle patch
+#
+# `dsh plugin --profile web add link:<本目录绝对路径>` 会在 profile 的
+# dsh.profile.bundles 末尾追加本插件并把下面的 insert 叠入配置树。
+# 行 id 与 name 见下；name 必须能在 profile 的 node_modules 中解析到本包。
+- insert:
+    - id: effort-slider
+      name: 'dsh-effort-slider'
+      config: {}

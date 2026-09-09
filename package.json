@@ -1,0 +1,47 @@
+{
+  "name": "dsh-effort-slider",
+  "version": "0.1.0",
+  "description": "DSH Web 思考强度就地替换插件：把模型座位「推理等级」面板里的原生单选行替换成 Claude Effort 卡片风格的美丽滑块（Off / Low / High / Max，含 WebGL 火焰），选择仍走官方会话链路。",
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "client-plugin",
+    "effort",
+    "reasoning-effort",
+    "thinking",
+    "ui"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "compatibility": {
+      "dsh": ">=0.1.0-rc.5"
+    }
+  },
+  "files": [
+    "lib",
+    "web",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deepseek-ai/deepseek-harness"
+  }
+}
