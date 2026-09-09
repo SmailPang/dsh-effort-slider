@@ -27,14 +27,26 @@
 
 ## 安装
 
-需要已安装 DSH（`dsh` 命令可用）：
+需要已安装 DSH（`dsh` 命令可用）。普通用户直接从 GitHub 安装：
 
 ```powershell
-dsh plugin --profile web add link:D:\Project\claude-range-slider\dsh-effort-slider
+dsh plugin --profile web add github:SmailPang/dsh-effort-slider
 ```
 
 该命令会把插件安装进 profile 的 `node_modules`，并把它追加到 `dsh.profile.bundles`
 （插件自带 `cordis.patch.yml`，无需手改 profile）。
+
+也可以使用完整 Git URL：
+
+```powershell
+dsh plugin --profile web add git+https://github.com/SmailPang/dsh-effort-slider.git
+```
+
+仅在克隆本仓库并进行本地开发时，才使用 `link:`：
+
+```powershell
+dsh plugin --profile web add link:D:\你的路径\dsh-effort-slider
+```
 
 > 可选校验：`dsh --profile web --dump-config`（只组合配置树，不启动服务），应能看到
 > `effort-slider` 行。

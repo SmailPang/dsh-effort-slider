@@ -42,6 +42,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/deepseek-ai/deepseek-harness"
+    "url": "git+https://github.com/SmailPang/dsh-effort-slider.git"
+  },
+  "homepage": "https://github.com/SmailPang/dsh-effort-slider#readme",
+  "bugs": {
+    "url": "https://github.com/SmailPang/dsh-effort-slider/issues"
   }
 }
