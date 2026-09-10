@@ -37,20 +37,24 @@
 
 ## 安装
 
-需要已安装 DSH（`dsh` 命令可用）。普通用户直接从 GitHub 安装：
+需要已安装 DSH（`dsh` 命令可用）。推荐安装已发布的预构建包：
 
 ```powershell
-dsh plugin --profile web add github:SmailPang/dsh-effort-slider
+dsh plugin --profile web add https://github.com/SmailPang/dsh-effort-slider/releases/download/v0.1.1/dsh-effort-slider-0.1.1.tgz
 ```
 
 该命令会把插件安装进 profile 的 `node_modules`，并把它追加到 `dsh.profile.bundles`
 （插件自带 `cordis.patch.yml`，无需手改 profile）。
 
-也可以使用完整 Git URL：
+也可以直接从 GitHub 源码安装：
 
 ```powershell
-dsh plugin --profile web add git+https://github.com/SmailPang/dsh-effort-slider.git
+dsh plugin --profile web add github:SmailPang/dsh-effort-slider
 ```
+
+> 如果出现 `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`，请查看错误中列出的包名。
+> 这是当前 DSH profile 的供应链策略拒绝了发布时间过近的依赖，并不表示本插件损坏。
+> 等这些依赖超过策略等待时间后重试即可；不要为了安装本插件随意放宽全局供应链策略。
 
 > 可选校验：`dsh --profile web --dump-config`（只组合配置树，不启动服务），应能看到
 > `effort-slider` 行。
