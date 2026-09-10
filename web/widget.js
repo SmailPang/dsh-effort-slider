@@ -610,7 +610,7 @@
   function segs() {
     return Math.max(1, uiLevels.length - 1)
   }
-  function paint(animate) {
+  function paint(animate, preserveThumb) {
     var isUltra = !!uiLevels[uiIdx] && uiLevels[uiIdx].isMax
     slot.classList.toggle('dse-ultra', isUltra)
     track.classList.toggle('dse-ultra', isUltra)
@@ -622,7 +622,7 @@
       else if (uiLevels.length === 4 && uiIdx === 1) statusEl.classList.add('dse-low-glow')
       else if (uiLevels.length === 4 && uiIdx === 2) statusEl.classList.add('dse-mid-glow')
       if (animate) flip()
-      slider.value = String(Math.round((uiIdx * 100) / segs()))
+      if (!preserveThumb) slider.value = String(Math.round((uiIdx * 100) / segs()))
       slider.setAttribute('aria-valuetext', lv.label)
     } else {
       // Default selected (provider default) or unknown → neutral state
@@ -870,9 +870,9 @@
     var idx = uiLevels.length === 0 ? -1 : clamp(Math.round((Number(slider.value) * segs()) / 100), 0, uiLevels.length - 1)
     if (idx !== uiIdx) {
       uiIdx = idx
-      paint(true)
+      paint(true, true)
     } else {
-      paint(false)
+      paint(false, true)
     }
   })
   var committedAt = 0
@@ -884,6 +884,9 @@
     var now = Date.now()
     if (now - committedAt < 350) return // pointerup + change fire together
     if (uiIdx < 0 || uiIdx >= rows.length) return
+    // Dragging is continuous; release snaps the thumb to the chosen semantic
+    // effort before the native DSH selection is committed.
+    paint(false)
     var target = rows[uiIdx]
     if (target === checkedRow && checkedRow) return
     if (!target || !target.isConnected) {
