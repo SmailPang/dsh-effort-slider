@@ -16,6 +16,16 @@
 > 档位含义与官方一致（`off | low | high | max`）。原生的 Default 档会被标出
 > 「Default · 跟随模型」，并提供「恢复默认」按钮。
 
+## 效果预览
+
+### High 档
+
+![High 档推理强度滑块](assets/effort-high-light.png)
+
+### Max 档
+
+![Max 档 DeepSeek 蓝璀璨星效果](assets/effort-max-light.png)
+
 ## 它做了什么
 
 | 层 | 实现 |
