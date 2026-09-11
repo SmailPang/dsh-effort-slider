@@ -63,6 +63,7 @@
    * CSS (namespaced, sized to sit inside the model-seat popover)
    * ====================================================================== */
   var CSS = [
+    '[role="menu"][data-dse-position-lock]{left:var(--dse-lock-left)!important;top:var(--dse-lock-top)!important}',
     '[data-dse-slot]{box-sizing:border-box;width:100%;min-width:300px;padding:4px;user-select:none;color:var(--dsw-alias-label-primary);font-family:inherit}',
     '[data-dse-slot] *{box-sizing:border-box}',
     '.dse-nav{display:flex;align-items:center;justify-content:space-between;height:36px}',
@@ -760,6 +761,24 @@
 
   /* ---- hide native rows and mount our card in place --------------------- */
   var hideList = [] // [{node, prev}] rows hidden by us (restored on unmount)
+  var lockedMenu = null
+  function lockMenuPosition(menu, rect) {
+    if (!menu || !rect) return
+    if (lockedMenu && lockedMenu !== menu) unlockMenuPosition()
+    lockedMenu = menu
+    menu.style.setProperty('--dse-lock-left', Math.round(rect.left) + 'px')
+    menu.style.setProperty('--dse-lock-top', Math.round(rect.top) + 'px')
+    menu.setAttribute('data-dse-position-lock', '')
+  }
+  function unlockMenuPosition() {
+    if (!lockedMenu) return
+    try {
+      lockedMenu.removeAttribute('data-dse-position-lock')
+      lockedMenu.style.removeProperty('--dse-lock-left')
+      lockedMenu.style.removeProperty('--dse-lock-top')
+    } catch (err) {}
+    lockedMenu = null
+  }
   function hideRow(node) {
     if (!node || node.__dseHidden) return
     node.__dseHidden = true
@@ -771,6 +790,10 @@
     if (!menu || !menu.isConnected) return
     var c = collectRows(menu)
     if (c.rows.length === 0 && !c.defaultRow) return
+    // Capture the position the user sees when entering the effort pane. The
+    // plugin widens that already-positioned native menu; DSH 0.1.5 otherwise
+    // recalculates `left` only after a selection and visibly jumps sideways.
+    var openingRect = menu.getBoundingClientRect ? menu.getBoundingClientRect() : null
     suppressObserve = true
     try {
       // remove a foreign duplicate card that a stale instance may have mounted
@@ -785,6 +808,7 @@
       for (var i = 0; i < c.rows.length; i++) hideRow(c.rows[i])
       if (c.defaultRow) hideRow(c.defaultRow)
       menu.appendChild(slot)
+      lockMenuPosition(menu, openingRect)
       slotActive = true
       if (!syncFromDom(menu)) {
         unmount()
@@ -809,6 +833,7 @@
     try {
       if (slot.parentNode) slot.parentNode.removeChild(slot)
     } catch (err) {}
+    unlockMenuPosition()
     // restore any native rows we hid (no-op when React already removed them)
     for (var i = 0; i < hideList.length; i++) {
       var item = hideList[i]
@@ -911,12 +936,37 @@
   backBtn.addEventListener('click', function () {
     var menu = slot.parentNode
     var root = menu && menu.parentElement
-    var trigger = root && root.querySelector ? root.querySelector('button[aria-haspopup="menu"]') : null
+    var trigger = null
+    var menuId = menu && menu.getAttribute ? menu.getAttribute('id') : null
+    if (menuId && document.querySelectorAll) {
+      var candidates = document.querySelectorAll('button[aria-haspopup="menu"]')
+      for (var i = 0; i < candidates.length; i++) {
+        if (candidates[i].getAttribute('aria-controls') === menuId) {
+          trigger = candidates[i]
+          break
+        }
+      }
+    }
+    // Pre-portal DSH versions keep the trigger and menu under one root.
+    if (!trigger && root && root.querySelector) trigger = root.querySelector('button[aria-haspopup="menu"]')
     // ModelSelect closes on blur. Move focus to its persistent trigger before
     // removing this plugin-owned button so blur remains inside the same root.
     if (trigger && typeof trigger.focus === 'function') trigger.focus()
-    if (trigger) trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }))
-    else setFoot('无法返回，请按 Esc', 'err')
+    if (trigger) {
+      // Release the effort pane's width and position lock before React lays
+      // out the root pane. Otherwise DSH measures the root menu with the
+      // slider's dimensions and the native menu appears at the wrong place.
+      unmount()
+      try { trigger.click() } catch (err) {
+        return
+      }
+      // Reopening the native trigger always starts ModelSelect at its root
+      // pane and lets DSH position that pane using its own dimensions.
+      setTimeout(function () {
+        if (!trigger.isConnected) return
+        try { trigger.click() } catch (err) {}
+      }, 50)
+    } else setFoot('无法返回，请按 Esc', 'err')
   })
 
   /* ======================================================================
@@ -930,9 +980,31 @@
     }
     return n
   }
+  function isVisibleMenu(menu) {
+    if (!menu || !menu.isConnected || menu.hidden) return false
+    try {
+      // position:fixed elements may legitimately have a null offsetParent
+      // (DSH >= 0.1.5 portals the model menu under <body>), so use rendered
+      // client rectangles as the visibility signal instead.
+      return !menu.getClientRects || menu.getClientRects().length > 0
+    } catch (err) {
+      return true
+    }
+  }
   function anchoredToComposer(menu) {
     try {
       if (menu.closest && menu.closest('[data-composer-card]')) return true
+      // DSH >= 0.1.5 renders the model menu through a portal under <body>.
+      // Associate that detached menu with its composer trigger using the
+      // standard aria-controls relationship instead of relying on ancestry.
+      var menuId = menu.getAttribute && menu.getAttribute('id')
+      if (menuId && document.querySelectorAll) {
+        var triggers = document.querySelectorAll('button[aria-haspopup="menu"][aria-expanded="true"]')
+        for (var i = 0; i < triggers.length; i++) {
+          if (triggers[i].getAttribute('aria-controls') !== menuId) continue
+          if (triggers[i].closest && triggers[i].closest('[data-composer-card]')) return true
+        }
+      }
       if (document.querySelector && !document.querySelector('[data-composer-card]')) return true
     } catch (err) {}
     return false
@@ -974,6 +1046,32 @@
   )
 
   /* refresh our mounted card when React swapped the underlying native rows */
+  function refreshMounted(menu) {
+    // Keep the replacement card attached while React swaps the native effort
+    // rows. DSH 0.1.5 measures and repositions its portal menu on every model
+    // state update; removing the card here briefly collapses the menu to its
+    // native width and makes the restored slider jump sideways.
+    suppressObserve = true
+    try {
+      var kept = []
+      for (var i = 0; i < hideList.length; i++) {
+        var item = hideList[i]
+        if (item.node && item.node.isConnected) kept.push(item)
+        else {
+          try { delete item.node.__dseHidden } catch (err) {}
+        }
+      }
+      hideList = kept
+
+      var current = collectRows(menu)
+      for (var j = 0; j < current.rows.length; j++) hideRow(current.rows[j])
+      if (current.defaultRow) hideRow(current.defaultRow)
+      syncFromDom(menu)
+    } finally {
+      suppressObserve = false
+    }
+  }
+
   function resyncIfChanged(menu) {
     var c = collectRows(menu)
     var changed = c.rows.length !== rows.length || !!c.defaultRow !== !!defaultRow
@@ -1000,15 +1098,7 @@
         if (ck !== cur) changed = true
       }
     }
-    if (changed) {
-      suppressObserve = true
-      try {
-        unmount()
-        mount(menu)
-      } finally {
-        suppressObserve = false
-      }
-    }
+    if (changed) refreshMounted(menu)
   }
   function reconcileMenus() {
     if (suppressObserve) return
@@ -1019,7 +1109,7 @@
     // already mounted and the pane is still here → keep (resync cheaply)
     if (slotActive && slot.parentNode) {
       var host = slot.parentNode
-      if (host.isConnected && host.offsetParent !== null && isComposerSeatMenu(host)) {
+      if (isVisibleMenu(host) && isComposerSeatMenu(host)) {
         if (!dragging) resyncIfChanged(host)
         var lv = uiLevels[uiIdx]
         if (fire && fire.ok && lv && lv.isMax) fire.kick() // wake engine when sized later
@@ -1032,7 +1122,7 @@
     var best = null
     for (var i = 0; i < menus.length; i++) {
       var m = menus[i]
-      if (!m.isConnected || m.offsetParent === null) continue
+      if (!isVisibleMenu(m)) continue
       if (m === slot.parentNode) continue
       if (isComposerSeatMenu(m)) {
         best = m
