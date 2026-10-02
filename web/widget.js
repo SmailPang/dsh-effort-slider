@@ -9,13 +9,13 @@
 // 但仅抑制 chooseEffort() 成功结算时的 close UI 副作用。返回按钮通过 DSH
 // 自己的键盘状态机把 effort pane 切回 root pane。
 //
-// 由宿主插件注入（defer），无依赖、无打包。
+// 由 DSH 官方 client module 插件加载；保持无运行时依赖。
 // ============================================================================
-(function () {
+export function mountDshEffortSliderWidget() {
   // Re-inject safe: only one live instance per document. If a full-body remount
   // destroys our nodes, the newest injected copy supersedes older ones via the
   // token below (stale copies go dormant instead of double-mounting sliders).
-  if (window.__dshEffortSliderV2 && document.querySelector('[data-dse-slot]')) return
+  if (window.__dshEffortSliderV2 && document.querySelector('[data-dse-slot]')) return function () {}
   window.__dshEffortSliderV2 = true
   var TOKEN = {}
   window.__dshEffortSliderToken = TOKEN
@@ -63,8 +63,8 @@
    * CSS (namespaced, sized to sit inside the model-seat popover)
    * ====================================================================== */
   var CSS = [
-    '[role="menu"][data-dse-position-lock]{left:var(--dse-lock-left)!important;top:var(--dse-lock-top)!important}',
-    '[data-dse-slot]{box-sizing:border-box;width:100%;min-width:300px;padding:4px;user-select:none;color:var(--dsw-alias-label-primary);font-family:inherit}',
+    '[role="menu"][data-dse-position-lock]{left:var(--dse-lock-left)!important;top:var(--dse-lock-top)!important;z-index:2147483000!important}',
+    '[data-dse-slot]{position:relative;z-index:2147483000;isolation:isolate;box-sizing:border-box;width:100%;min-width:300px;padding:4px;zoom:.78;user-select:none;color:var(--dsw-alias-label-primary);font-family:inherit}',
     '[data-dse-slot] *{box-sizing:border-box}',
     '.dse-nav{display:flex;align-items:center;justify-content:space-between;height:36px}',
     '.dse-nav .dse-f-btn{height:32px;border:none;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;padding:0 8px;font:inherit;font-size:13px;font-weight:500;border-radius:8px}',
@@ -89,18 +89,18 @@
     '.dse-dot.dse-dot-on{background:#9a9aae}',
     '.dse-dot.dse-dot-on.dse-dot-ultra{background:#b9aaff;box-shadow:0 0 6px rgba(150,125,255,.8)}',
     '.dse-track.dse-ultra .dse-dot.dse-dot-ultra{opacity:.55}',
-    '.dse-levels{display:flex;justify-content:space-between;margin:5px 10px 4px;font-size:11px;font-weight:400;color:var(--dsw-alias-label-tertiary)}',
-    '.dse-levels span{transition:color .2s ease,text-shadow .2s ease}',
+    '.dse-levels{position:relative;height:17px;margin:5px 8px 4px;font-size:11px;font-weight:400;color:var(--dsw-alias-label-tertiary)}',
+    '.dse-levels span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;transition:color .2s ease,text-shadow .2s ease}',
     '.dse-levels span.dse-on{color:var(--dsw-alias-label-primary)}',
     '.dse-levels span.dse-on.dse-a-low,.dse-levels span.dse-on.dse-a-mid{color:var(--dsw-alias-label-primary);text-shadow:none;font-weight:600}',
     '.dse-levels span.dse-on.dse-a-max{color:#3964FE;text-shadow:0 0 7px rgba(57,100,254,.2);font-weight:600}',
-    '[data-dse-slot] input[type=range]{position:absolute;inset:0;width:100%;height:100%;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer;z-index:5;outline:none;margin:0;padding:0}',
-    '[data-dse-slot] input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:29px;height:29px;border-radius:10px;background:var(--dsw-specific-menu);border:1px solid var(--dsw-alias-border-l2);box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:grab;transition:box-shadow .2s ease,transform .12s ease}',
+    '[data-dse-slot] input[type=range]{position:absolute;inset:0;width:100%;height:100%;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer;z-index:10;outline:none;margin:0;padding:0}',
+    '[data-dse-slot] input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:29px;height:29px;border-radius:10px;background:#fff;border:1px solid var(--dsw-alias-border-l2);box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:grab;transition:none}',
     'body[data-ds-dark-theme] [data-dse-slot] input[type=range]::-webkit-slider-thumb{background:#f4f6ff;border:1px solid rgba(255,255,255,.82);box-shadow:0 1px 4px rgba(0,0,0,.55),0 0 0 1px rgba(57,100,254,.5),0 0 9px rgba(57,100,254,.32)}',
-    '[data-dse-slot] input[type=range]::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(.93)}',
+    '[data-dse-slot] input[type=range]::-webkit-slider-thumb:active{cursor:grabbing}',
     '[data-dse-slot].dse-ultra input[type=range]::-webkit-slider-thumb{box-shadow:0 1px 3px rgba(0,0,0,.18),0 0 10px rgba(57,100,254,.52),0 0 22px rgba(57,100,254,.22)}',
     'body[data-ds-dark-theme] [data-dse-slot].dse-ultra input[type=range]::-webkit-slider-thumb{background:#fff;border-color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.58),0 0 0 1px rgba(57,100,254,.78),0 0 12px rgba(57,100,254,.7),0 0 24px rgba(57,100,254,.34)}',
-    '[data-dse-slot] input[type=range]::-moz-range-thumb{width:29px;height:29px;border-radius:10px;background:linear-gradient(170deg,#ffffff 0%,#f2f2f6 42%,#e4e4ea 100%);border:1px solid rgba(0,0,0,.12);box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:grab}',
+    '[data-dse-slot] input[type=range]::-moz-range-thumb{width:29px;height:29px;border-radius:10px;background:#fff;border:1px solid rgba(0,0,0,.12);box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:grab;transition:none}',
     'body[data-ds-dark-theme] [data-dse-slot] input[type=range]::-moz-range-thumb{background:#f4f6ff;border:1px solid rgba(255,255,255,.82);box-shadow:0 1px 4px rgba(0,0,0,.55),0 0 0 1px rgba(57,100,254,.5),0 0 9px rgba(57,100,254,.32)}',
     '[data-dse-slot].dse-ultra input[type=range]::-moz-range-thumb{box-shadow:0 1px 3px rgba(0,0,0,.18),0 0 10px rgba(57,100,254,.52),0 0 22px rgba(57,100,254,.22)}',
     'body[data-ds-dark-theme] [data-dse-slot].dse-ultra input[type=range]::-moz-range-thumb{background:#fff;border-color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.58),0 0 0 1px rgba(57,100,254,.78),0 0 12px rgba(57,100,254,.7),0 0 24px rgba(57,100,254,.34)}',
@@ -551,11 +551,6 @@
   var track = el('div', 'dse-track')
   var canvas = el('canvas', 'dse-canvas')
   var dots = el('div', 'dse-dots')
-  for (var di = 0; di < 5; di++) {
-    var ddot = el('span', 'dse-dot')
-    ddot.style.left = di * 25 + '%'
-    dots.appendChild(ddot)
-  }
   var slider = el('input', '')
   slider.type = 'range'
   slider.min = '0'
@@ -598,6 +593,7 @@
   var uiIdx = -1 // -1 when current native selection is Default/unknown
   var checkedRow = null
   var dragging = false
+  var activePointerId = null
   var movedSinceCommit = false // true once the slider actually moved this gesture
   var fire = null
   var suppressObserve = false
@@ -637,7 +633,7 @@
       }
     }
     // ticks / level labels
-    var lit = uiIdx >= 0 ? Math.round((uiIdx / segs()) * 4) : -1
+    var lit = uiIdx
     for (var i = 0; i < dotNodes.length; i++) {
       dotNodes[i].classList.toggle('dse-dot-on', i <= lit)
       dotNodes[i].classList.toggle('dse-dot-ultra', isUltra && i === dotNodes.length - 1)
@@ -675,10 +671,12 @@
     Promise.prototype.then = function (onFulfilled, onRejected) {
       var source = ''
       try { source = typeof onFulfilled === 'function' ? Function.prototype.toString.call(onFulfilled) : '' } catch (err) {}
-      if (!intercepted && /accepted/.test(source) && /close\(true\)/.test(source)) {
+      // DSH 0.2.0-rc.2 passes `settleSelection` as the promise callback.
+      // Skip only its successful close path so the effort pane remains open.
+      if (!intercepted && /closeAfterSelection/.test(source) && /\.ok/.test(source)) {
         intercepted = true
-        return originalThen.call(this, function (accepted) {
-          if (!accepted) return onFulfilled(accepted)
+        return originalThen.call(this, function (result) {
+          if (!result || !result.ok) return onFulfilled(result)
           setFoot('已应用')
         }, onRejected)
       }
@@ -732,10 +730,19 @@
       var id = effortId(rows[idx])
       return { id: id, label: lbl, isMax: id === 'max' || (!id && idx === rows.length - 1) }
     })
-    // rebuild tick labels
+    // The native range thumb travels between its own half-width insets rather
+    // than across the full track width. Put dots and labels on those exact
+    // centers so all three agree at every semantic stop.
+    dots.innerHTML = ''
     levelRow.innerHTML = ''
-    uiLevels.forEach(function (lv) {
+    uiLevels.forEach(function (lv, idx) {
+      var fraction = uiLevels.length > 1 ? idx / (uiLevels.length - 1) : 0.5
+      var position = 'calc(' + (fraction * 100) + '% + ' + (14.5 - fraction * 29) + 'px)'
+      var dot = el('span', 'dse-dot')
+      dot.style.left = position
+      dots.appendChild(dot)
       var s = el('span', '', lv.label)
+      s.style.left = position
       levelRow.appendChild(s)
     })
     // current = checked radio
@@ -762,12 +769,15 @@
   /* ---- hide native rows and mount our card in place --------------------- */
   var hideList = [] // [{node, prev}] rows hidden by us (restored on unmount)
   var lockedMenu = null
+  var lockedMenuZ = null
   function lockMenuPosition(menu, rect) {
     if (!menu || !rect) return
     if (lockedMenu && lockedMenu !== menu) unlockMenuPosition()
     lockedMenu = menu
+    if (lockedMenuZ === null) lockedMenuZ = { value: menu.style.getPropertyValue('z-index'), priority: menu.style.getPropertyPriority('z-index') }
     menu.style.setProperty('--dse-lock-left', Math.round(rect.left) + 'px')
     menu.style.setProperty('--dse-lock-top', Math.round(rect.top) + 'px')
+    menu.style.setProperty('z-index', '2147483000', 'important')
     menu.setAttribute('data-dse-position-lock', '')
   }
   function unlockMenuPosition() {
@@ -776,8 +786,11 @@
       lockedMenu.removeAttribute('data-dse-position-lock')
       lockedMenu.style.removeProperty('--dse-lock-left')
       lockedMenu.style.removeProperty('--dse-lock-top')
+      if (lockedMenuZ && lockedMenuZ.value) lockedMenu.style.setProperty('z-index', lockedMenuZ.value, lockedMenuZ.priority)
+      else lockedMenu.style.removeProperty('z-index')
     } catch (err) {}
     lockedMenu = null
+    lockedMenuZ = null
   }
   function hideRow(node) {
     if (!node || node.__dseHidden) return
@@ -804,11 +817,39 @@
       if (slot.parentNode && slot.parentNode !== menu) {
         try { slot.parentNode.removeChild(slot) } catch (err) {}
       }
+      // DSH focuses the checked radio when drilling into the effort pane.
+      // Hiding that focused button blurs to `body`; ModelSelect treats that
+      // as an outside blur and closes the whole menu. Move focus into our
+      // replacement (which is inside menuRef) before hiding the native row.
+      menu.appendChild(slot)
+      var focusedNode = document.activeElement
+      var focusedNativeRow = focusedNode === c.defaultRow
+      for (var fi = 0; !focusedNativeRow && fi < c.rows.length; fi++) {
+        focusedNativeRow = c.rows[fi] === focusedNode
+      }
+      if (focusedNativeRow) {
+        try { slider.focus({ preventScroll: true }) } catch (err) { try { slider.focus() } catch (err2) {} }
+      }
       // hide the native option rows — the menu re-flows around our card
       for (var i = 0; i < c.rows.length; i++) hideRow(c.rows[i])
       if (c.defaultRow) hideRow(c.defaultRow)
-      menu.appendChild(slot)
-      lockMenuPosition(menu, openingRect)
+      // DSH measured the original option list before our card was mounted.
+      // Re-anchor the expanded card above its trigger so its bottom edge does
+      // not sit on the composer controls, and elevate the portal surface itself.
+      var positionedRect = openingRect
+      var menuId = menu.getAttribute && menu.getAttribute('id')
+      if (menuId && openingRect) {
+        var triggers = document.querySelectorAll('button[aria-haspopup="menu"][aria-controls]')
+        for (var ti = 0; ti < triggers.length; ti++) {
+          if (triggers[ti].getAttribute('aria-controls') !== menuId) continue
+          var triggerRect = triggers[ti].getBoundingClientRect()
+          var menuHeight = menu.getBoundingClientRect ? menu.getBoundingClientRect().height : menu.offsetHeight
+          var top = Math.max(12, triggerRect.top - 8 - menuHeight)
+          positionedRect = { left: openingRect.left, top: top }
+          break
+        }
+      }
+      lockMenuPosition(menu, positionedRect)
       slotActive = true
       if (!syncFromDom(menu)) {
         unmount()
@@ -829,6 +870,7 @@
     }
   }
   function unmount() {
+    abortDrag()
     suppressObserve = true
     try {
       if (slot.parentNode) slot.parentNode.removeChild(slot)
@@ -888,7 +930,58 @@
   }
 
   /* ---- slider interaction: preview + commit via native row click --------- */
+  var snapRaf = 0
+  function cancelSnap() {
+    if (!snapRaf) return
+    cancelAnimationFrame(snapRaf)
+    snapRaf = 0
+  }
+  function animateSnap(targetValue, done) {
+    cancelSnap()
+    var from = Number(slider.value)
+    var distance = Math.abs(targetValue - from)
+    if (distance < 0.1) {
+      slider.value = String(targetValue)
+      done()
+      return
+    }
+    var startedAt = performance.now()
+    var duration = Math.min(240, 140 + distance * 1.2)
+    function frame(now) {
+      var progress = clamp((now - startedAt) / duration, 0, 1)
+      var eased = 1 - Math.pow(1 - progress, 3)
+      slider.value = String(from + (targetValue - from) * eased)
+      if (progress < 1 && slotActive) {
+        snapRaf = requestAnimationFrame(frame)
+        return
+      }
+      snapRaf = 0
+      slider.value = String(targetValue)
+      if (slotActive) done()
+    }
+    snapRaf = requestAnimationFrame(frame)
+  }
+  function releaseDragPointer() {
+    if (activePointerId === null) return
+    try {
+      if (slider.hasPointerCapture && slider.hasPointerCapture(activePointerId)) slider.releasePointerCapture(activePointerId)
+    } catch (err) {}
+    activePointerId = null
+  }
+  function abortDrag() {
+    cancelSnap()
+    releaseDragPointer()
+    dragging = false
+    movedSinceCommit = false
+  }
+  slider.addEventListener('pointerdown', function (event) {
+    cancelSnap()
+    activePointerId = event.pointerId
+    dragging = true
+    try { slider.setPointerCapture(event.pointerId) } catch (err) {}
+  })
   slider.addEventListener('input', function () {
+    cancelSnap()
     dragging = true
     movedSinceCommit = true
     fetchEpoch++ // invalidate any in-flight Default resolution (user moved)
@@ -909,22 +1002,36 @@
     var now = Date.now()
     if (now - committedAt < 350) return // pointerup + change fire together
     if (uiIdx < 0 || uiIdx >= rows.length) return
-    // Dragging is continuous; release snaps the thumb to the chosen semantic
-    // effort before the native DSH selection is committed.
-    paint(false)
+    // Ease the thumb to the nearest semantic stop, then commit through DSH's
+    // native option. This keeps free dragging responsive without a hard jump.
+    var targetValue = Math.round((uiIdx * 100) / segs())
     var target = rows[uiIdx]
-    if (target === checkedRow && checkedRow) return
-    if (!target || !target.isConnected) {
-      setFoot('界面已更新，请重新选择', 'err')
-      return
-    }
-    if (selectNativeRowKeepingOpen(target)) {
-      committedAt = now
-    }
+    animateSnap(targetValue, function () {
+      if (target === checkedRow && checkedRow) return
+      if (!target || !target.isConnected) {
+        setFoot('界面已更新，请重新选择', 'err')
+        return
+      }
+      if (selectNativeRowKeepingOpen(target)) committedAt = Date.now()
+    })
   }
   slider.addEventListener('change', commit)
   slider.addEventListener('keyup', commit)
-  slider.addEventListener('pointerup', commit)
+  slider.addEventListener('pointerup', function () {
+    releaseDragPointer()
+    commit()
+  })
+  slider.addEventListener('pointercancel', abortDrag)
+  var finishOrphanedDrag = function (event) {
+    if (activePointerId === null || event.pointerId !== activePointerId) return
+    releaseDragPointer()
+    dragging = false
+    movedSinceCommit = false
+  }
+  var abortDragOnBlur = function () { abortDrag() }
+  window.addEventListener('pointerup', finishOrphanedDrag)
+  window.addEventListener('pointercancel', finishOrphanedDrag)
+  window.addEventListener('blur', abortDragOnBlur)
   resetBtn.addEventListener('click', function () {
     if (!defaultRow) return
     selectNativeRowKeepingOpen(defaultRow)
@@ -994,15 +1101,21 @@
   function anchoredToComposer(menu) {
     try {
       if (menu.closest && menu.closest('[data-composer-card]')) return true
-      // DSH >= 0.1.5 renders the model menu through a portal under <body>.
-      // Associate that detached menu with its composer trigger using the
-      // standard aria-controls relationship instead of relying on ancestry.
+      // DSH renders the model menu through a portal under <body>. Associate
+      // it with its trigger using aria-controls; newer ModelSelect versions
+      // also expose their purpose in the trigger/menu accessible name. Keep
+      // this fallback for DSH releases that move the composer wrapper or drop
+      // its data-composer-card marker.
       var menuId = menu.getAttribute && menu.getAttribute('id')
       if (menuId && document.querySelectorAll) {
         var triggers = document.querySelectorAll('button[aria-haspopup="menu"][aria-expanded="true"]')
         for (var i = 0; i < triggers.length; i++) {
           if (triggers[i].getAttribute('aria-controls') !== menuId) continue
           if (triggers[i].closest && triggers[i].closest('[data-composer-card]')) return true
+          var triggerName = (triggers[i].getAttribute('aria-label') || text(triggers[i])).toLowerCase()
+          var menuName = (menu.getAttribute('aria-label') || '').toLowerCase()
+          if (/推理等级|模型与推理等级|reasoning effort/.test(triggerName)
+            || /模型与推理等级|model and reasoning effort/.test(menuName)) return true
         }
       }
       if (document.querySelector && !document.querySelector('[data-composer-card]')) return true
@@ -1026,9 +1139,7 @@
   }
   // remember when the user opens the effort pane so custom-name providers are
   // still detected without relying on English labels
-  document.addEventListener(
-    'click',
-    function (e) {
+  var onIntentClick = function (e) {
       if (window.__dshEffortSliderToken !== TOKEN) return
       var t = e.target
       var btn = t && t.closest ? t.closest('button') : null
@@ -1041,9 +1152,8 @@
           try { seatIntent.set(menu, Date.now()) } catch (err) {}
         }
       }
-    },
-    true,
-  )
+  }
+  document.addEventListener('click', onIntentClick, true)
 
   /* refresh our mounted card when React swapped the underlying native rows */
   function refreshMounted(menu) {
@@ -1100,6 +1210,18 @@
     }
     if (changed) refreshMounted(menu)
   }
+  function mountedMenuIsOpen(menu) {
+    if (!menu || !menu.isConnected) return false
+    var menuId = menu.getAttribute && menu.getAttribute('id')
+    if (menuId) {
+      var triggers = document.querySelectorAll('button[aria-haspopup="menu"]')
+      for (var i = 0; i < triggers.length; i++) {
+        if (triggers[i].getAttribute('aria-controls') !== menuId) continue
+        return triggers[i].getAttribute('aria-expanded') === 'true'
+      }
+    }
+    return isVisibleMenu(menu) && isComposerSeatMenu(menu)
+  }
   function reconcileMenus() {
     if (suppressObserve) return
     if (window.__dshEffortSliderToken !== TOKEN) {
@@ -1109,7 +1231,10 @@
     // already mounted and the pane is still here → keep (resync cheaply)
     if (slotActive && slot.parentNode) {
       var host = slot.parentNode
-      if (isVisibleMenu(host) && isComposerSeatMenu(host)) {
+      // Once mounted, trust DSH's trigger state. During a fast drag React can
+      // briefly replace/disable the native rows, so re-running semantic menu
+      // detection here would remove the focused range input and close the menu.
+      if ((dragging && host.isConnected) || mountedMenuIsOpen(host)) {
         if (!dragging) resyncIfChanged(host)
         var lv = uiLevels[uiIdx]
         if (fire && fire.ok && lv && lv.isMax) fire.kick() // wake engine when sized later
@@ -1139,20 +1264,41 @@
   if (document.body) {
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-checked', 'aria-disabled', 'disabled'] })
   } else {
-    document.addEventListener('DOMContentLoaded', function () {
+    var onReady = function () {
       mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-checked', 'aria-disabled', 'disabled'] })
-    })
+    }
+    document.addEventListener('DOMContentLoaded', onReady)
   }
 
   // Cheap idle fallback scan in case of exotic menu markup.
-  setInterval(reconcileMenus, 800)
+  var scanTimer = setInterval(reconcileMenus, 800)
 
   // Restore rows / release GL on page teardown (best-effort; React owns rows).
-  window.addEventListener('beforeunload', function () {
+  var disposed = false
+  var onBeforeUnload = function () {
+    dispose()
+  }
+  function dispose() {
+    if (disposed) return
+    disposed = true
+    document.removeEventListener('click', onIntentClick, true)
+    document.removeEventListener('DOMContentLoaded', onReady)
+    window.removeEventListener('beforeunload', onBeforeUnload)
+    window.removeEventListener('pointerup', finishOrphanedDrag)
+    window.removeEventListener('pointercancel', finishOrphanedDrag)
+    window.removeEventListener('blur', abortDragOnBlur)
+    clearInterval(scanTimer)
+    try { mo.disconnect() } catch (err) {}
     unmount()
     if (fire && typeof fire.dispose === 'function') {
       try { fire.dispose() } catch (err) {}
       fire = null
     }
-  })
-})()
+    if (window.__dshEffortSliderToken === TOKEN) {
+      window.__dshEffortSliderToken = null
+      window.__dshEffortSliderV2 = false
+    }
+  }
+  window.addEventListener('beforeunload', onBeforeUnload)
+  return dispose
+}

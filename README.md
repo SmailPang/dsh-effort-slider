@@ -30,8 +30,8 @@
 
 | 层 | 实现 |
 |---|---|
-| 宿主插件（Node） | `lib/index.js`：把 `web/widget.js` 注入界面 HTML；提供 `/dsh-effort-slider/state.json`（档位元数据） |
-| 浏览器端 | `web/widget.js`：监视「模型座位」弹层，就地替换「推理等级」面板内容（零依赖、无打包） |
+| 宿主插件（Node） | `lib/index.js`：提供 `/dsh-effort-slider/state.json`（档位元数据）和应用接口 |
+| 浏览器端 | `src/client/index.js`：通过 DSH 官方 `dsh.client` 插件接口加载；`web/widget.js` 监视「模型座位」弹层并替换推理面板 |
 | 写入语义 | **不另发请求** —— 点击原生档位行，保留会话级 selectModel、默认保存和事件投影，只跳过成功后的 close 回调 |
 | 兜底 | 面板结构识别不到、无推理能力模型、或 WebGL 不可用时，原生 UI 原样保留，绝不破坏界面 |
 
@@ -61,7 +61,7 @@ dsh plugin --profile web add github:SmailPang/dsh-effort-slider
 
 最后**重启 dsh web**（`Ctrl+C` 后重新 `dsh web`），刷新浏览器后生效：
 打开任意会话 → 点击输入框上方的「模型座位」→ 点「推理等级/Effort」，即可看到被替换后的滑块。
-本插件不修改 DSH 本体代码，无需重新构建前端。
+本插件不修改 DSH 本体代码。浏览器界面由 DSH 官方 Client Module 加载，支持 Web 页面和官方桌面客户端。
 
 ## 使用
 
@@ -85,6 +85,7 @@ dsh plugin --profile web remove dsh-effort-slider
 ```powershell
 node --check lib\index.js
 node --check web\widget.js
+node build-client.mjs
 node test\smoke.mjs        # 宿主逻辑冒烟测试（stub 掉 cordis 服务）
 node test\detect-sanity.mjs  # 推理等级面板识别逻辑的独立校验
 ```
@@ -108,5 +109,5 @@ node test\detect-sanity.mjs  # 推理等级面板识别逻辑的独立校验
 
 ## 兼容性
 
-- DSH `>= 0.1.0-rc.5`（已在 0.1.2-rc.1 与 0.1.5-rc.2 前端验证）。
+- DSH `>= 0.2.0-rc.2`（官方 Web 与桌面客户端）。
 - Node >= 20（宿主侧）；浏览器需支持 WebGL2（无则自动回退 CSS 辉光）。
